@@ -106,14 +106,14 @@ func main_library_testing() {
     println("comparing two runs of functions:")
     let seed : Option<UInt64> = Some(Random().nextUInt64()) // None // Some(55)
     withSeed(seed) {
-        executeUntilDoneFast(
+        executeUntilDone(
             lib,
             20,
             @RunRandomly([f in randFuncAlt<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], map_))
     }
     println("================================================")
     withSeed(seed) {
-        executeUntilDoneFast(
+        executeUntilDone(
             lib,
             20,
             @RunRandomly([f in randFuncAlt<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], filter_))

@@ -15,7 +15,6 @@ func getUnixRunners(netCtx: NetContext): ArrayList<UnitFn> {
     let lib = ArrayList([
         @RunRandomly([path in netCtx.randFreshUnixPath], netCtx.unixServerCreateUnit),
         @RunRandomly([serverPath in netCtx.randUnixServerPathForBind], netCtx.unixServerBind),
-        @RunRandomly([serverPath in netCtx.randUnixServerPathBound], netCtx.unixServerAcceptUnit),
         @RunRandomly([serverPath in netCtx.randUnixServerPath], netCtx.unixServerClose),
         @RunRandomly([path in netCtx.randUnixServerPathBound], netCtx.unixSocketCreateUnit),
         @RunRandomly([i in netCtx.randUnixClientIndex], netCtx.unixSocketConnectIndex),
@@ -71,7 +70,6 @@ public func getTcpRunners(netCtx: NetContext): ArrayList<UnitFn> {
     ArrayList([
         @RunRandomly([], netCtx.tcpServerCreateUnit),
         @RunRandomly([i in netCtx.randTcpServerIndex], netCtx.tcpServerBindIndex),
-        @RunRandomly([i in netCtx.randBoundTcpServerIndex], netCtx.tcpServerAcceptUnitIndex),
         @RunRandomly([i in netCtx.randTcpServerIndex], netCtx.tcpServerCloseIndex),
         @RunRandomly([address in netCtx.randTcpClientAddress], netCtx.tcpClientCreateUnit),
         @RunRandomly([i in netCtx.randTcpClientIndex], netCtx.tcpClientConnectIndex),

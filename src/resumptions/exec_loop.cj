@@ -12,7 +12,7 @@ public func randFuncAlt<A, B>(): (A) -> B where B <: Arbitrary<B> {{ a =>
     cjRandom<B>()
 }}
 
-public func executeUntilDoneFast(lib: ArrayList<UnitFn>, maxFuel: Int64, fn: () -> Unit): Unit {
+public func executeUntilDone(lib: ArrayList<UnitFn>, maxFuel: Int64, fn: () -> Unit): Unit {
     let ress = ArrayList<Res>()
     let fuel = Box<Int64>(maxFuel)
     

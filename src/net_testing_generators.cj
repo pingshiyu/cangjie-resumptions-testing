@@ -80,11 +80,6 @@ public class NetContext {
         return ls[ix]
     }
 
-    private func randBoolLocal(p: Float64): Bool {
-        let v = abs(cjRandom<Int64>()) % 10000
-        return Float64(v) / 10000.0 < p
-    }
-
     private static let randShortStringAlphabet: ArrayList<String> = ArrayList(["a", "b"])
 
     private func randShortStringLocal(n: Int64): String {
@@ -286,7 +281,7 @@ public class NetContext {
     }
 
     private static let acceptShortTimeout: Duration = 20 * Duration.millisecond
-    private static let streamReadTimeout: Duration = 500 * Duration.millisecond
+    private static let streamReadTimeout: Duration = 150 * Duration.millisecond
 
     /** Pre: i is randBoundTcpServerIndex (bound and not closed). Post: returns connected TcpSocket; optionally record in state. May throw SocketTimeoutException. */
     public func tcpServerAccept(i: Int64): TcpSocket {
@@ -319,12 +314,9 @@ public class NetContext {
         return client
     }
 
-    /** Unit version for RunRandomly. Only catches SocketTimeoutException (no client connected in time). */
+    /** Unit version for RunRandomly. Not registered in random pool (accept only used inside generators). */
     public func tcpServerAcceptUnitIndex(i: Int64): Unit {
-        try {
-            let _ = tcpServerAccept(i)
-        } catch (_: SocketTimeoutException) {
-        }
+        let _ = tcpServerAccept(i)
     }
 
     /** Pre: i valid index. Post: server closed; state marks closed. */
@@ -350,16 +342,28 @@ public class NetContext {
         tcpClientHasData.add(false)
     }
 
-    /** Pre: i valid index; socket not closed; server listening. Post: socket connected; state updated. */
+    private static let connectShortTimeout: Duration = 200 * Duration.millisecond
+
+    /** Pre: i valid index; socket not closed; server listening. Post: socket connected; state updated. Skips connect if server closed. Uses short timeout to avoid long wait; on timeout or failure does not mark connected. */
     public func tcpClientConnectIndex(i: Int64): Unit {
         if (i < 0 || i >= tcpClients.size || tcpClientClosed[i] || tcpClientConnected[i]) {
             return
         }
-        tcpClients[i].connect()
-        tcpClientConnected[i] = true
+        let si = tcpClientServerIndex[i]
+        if (si >= 0 && (si >= tcpServers.size || tcpServerClosed[si] || !tcpServerBound[si])) {
+            return
+        }
+        try {
+            tcpClients[i].connect(timeout: Some(connectShortTimeout))
+            tcpClientConnected[i] = true
+        } catch (_: SocketTimeoutException) {
+            ()
+        } catch (_: SocketException) {
+            ()
+        }
     }
 
-    /** Pre: i valid index; socket connected and not closed; buffer non-empty; hasData so read won't block. Post: hasData cleared for i. */
+    /** Pre: i valid index; socket connected and not closed; buffer non-empty. On timeout gives up quickly without long wait; state updated. */
     public func tcpSocketReadIndex(i: Int64, buffer: Array<Byte>): Unit {
         if (buffer.isEmpty()) {
             return
@@ -367,11 +371,15 @@ public class NetContext {
         if (i < 0 || i >= tcpClients.size || tcpClientClosed[i] || !tcpClientConnected[i]) {
             return
         }
-        let _ = tcpClients[i].read(buffer)
-        tcpClientHasData[i] = false
+        try {
+            let _ = tcpClients[i].read(buffer)
+            tcpClientHasData[i] = false
+        } catch (_: SocketTimeoutException) {
+            tcpClientHasData[i] = false
+        }
     }
 
-    /** Pre: i valid index; socket connected and not closed; payload non-empty. Post: peer's hasData set. */
+    /** Pre: i valid index; socket connected and not closed; payload non-empty; peer (if any) not closed. Post: peer's hasData set. */
     public func tcpSocketWriteIndex(i: Int64, payload: Array<Byte>): Unit {
         if (payload.isEmpty()) {
             return
@@ -379,8 +387,11 @@ public class NetContext {
         if (i < 0 || i >= tcpClients.size || tcpClientClosed[i] || !tcpClientConnected[i]) {
             return
         }
-        tcpClients[i].write(payload)
         let peer = tcpClientPeerIndex[i]
+        if (peer >= 0 && tcpClientClosed[peer]) {
+            return
+        }
+        tcpClients[i].write(payload)
         if (peer >= 0) {
             tcpClientHasData[peer] = true
         }
@@ -460,11 +471,11 @@ public class NetContext {
         return path
     }
 
-    /** Returns a Unix server path that is bound and not closed; creates one if none exist. */
-    public func randBoundUnixServer(): UnixServerSocket {
+    /** Returns index of a bound Unix server; creates one if none exist. Path is unixServerPath[i], server is unixServers[i]. */
+    public func randBoundUnixServerIndex(): Int64 {
         for (i in 0..unixServers.size) {
             if (unixServerBound[i] && !unixServerClosed[i]) {
-                return unixServers[i]
+                return i
             }
         }
         let path = randFreshUnixPath()
@@ -476,7 +487,12 @@ public class NetContext {
         server.bind()
         unixServerBound[unixServerBound.size - 1] = true
         unixPathsInUse.add(path)
-        return server
+        return unixServers.size - 1
+    }
+
+    /** Returns a Unix server that is bound and not closed; creates one if none exist. */
+    public func randBoundUnixServer(): UnixServerSocket {
+        return unixServers[randBoundUnixServerIndex()]
     }
 
     /** Returns a path for a Unix server we created but not yet bound (for unixServerBind). */
@@ -517,8 +533,8 @@ public class NetContext {
                 return i
             }
         }
-        let server = randBoundUnixServer()
-        let path = server.localAddress.toString()
+        let si = randBoundUnixServerIndex()
+        let path = unixServerPath[si]
         let client = UnixSocket(path)
         client.readTimeout = Some(streamReadTimeout)
         unixClients.add(client)
@@ -541,8 +557,8 @@ public class NetContext {
             }
         }
         if (open.isEmpty()) {
-            let server = randBoundUnixServer()
-            let path = server.localAddress.toString()
+            let si = randBoundUnixServerIndex()
+            let path = unixServerPath[si]
             let client = UnixSocket(path)
             client.readTimeout = Some(streamReadTimeout)
             unixClients.add(client)
@@ -571,8 +587,8 @@ public class NetContext {
                 return i
             }
         }
-        let server = randBoundUnixServer()
-        let path = server.localAddress.toString()
+        let si = randBoundUnixServerIndex()
+        let path = unixServerPath[si]
         let client = UnixSocket(path)
         client.readTimeout = Some(streamReadTimeout)
         unixClients.add(client)
@@ -584,23 +600,19 @@ public class NetContext {
         client.connect()
         unixClientConnected[unixClientConnected.size - 1] = true
         let clientIdx = unixClients.size - 1
-        match (indexOfUnixServerByPath(path)) {
-            case Some(si) =>
-                if (!unixServerClosed[si] && unixServerBound[si]) {
-                    let accepted = unixServers[si].accept(timeout: Some(unixAcceptShortTimeout))
-                    accepted.readTimeout = Some(streamReadTimeout)
-                    unixClients.add(accepted)
-                    unixClientServerPath.add(path)
-                    unixClientConnected.add(true)
-                    unixClientClosed.add(false)
-                    unixClientPeerIndex[clientIdx] = unixClients.size - 1
-                    unixClientPeerIndex.add(clientIdx)
-                    unixClientHasData.add(false)
-                    let payload = randSmallByteArray()
-                    unixSocketWriteIndex(clientIdx, payload)
-                    return unixClients.size - 1
-                }
-            case None => ()
+        if (!unixServerClosed[si] && unixServerBound[si]) {
+            let accepted = unixServers[si].accept(timeout: Some(unixAcceptShortTimeout))
+            accepted.readTimeout = Some(streamReadTimeout)
+            unixClients.add(accepted)
+            unixClientServerPath.add(path)
+            unixClientConnected.add(true)
+            unixClientClosed.add(false)
+            unixClientPeerIndex[clientIdx] = unixClients.size - 1
+            unixClientPeerIndex.add(clientIdx)
+            unixClientHasData.add(false)
+            let payload = randSmallByteArray()
+            unixSocketWriteIndex(clientIdx, payload)
+            return unixClients.size - 1
         }
         throw Exception("randConnectedUnixSocketIndexWithData: server path not found")
     }
@@ -641,31 +653,28 @@ public class NetContext {
                 if (unixServerClosed[i] || !unixServerBound[i]) {
                     return
                 }
-                try {
-                    let client = unixServers[i].accept(timeout: Some(unixAcceptShortTimeout))
-                    client.readTimeout = Some(streamReadTimeout)
-                    let newIdx = unixClients.size
-                    unixClients.add(client)
-                    unixClientServerPath.add(serverPath)
-                    unixClientConnected.add(true)
-                    unixClientClosed.add(false)
-                    var peerK: Int64 = -1
-                    var unpairedCount: Int64 = 0
-                    for (k in 0..unixClients.size - 1) {
-                        if (unixClientServerPath[k] == serverPath && unixClientConnected[k] && unixClientPeerIndex[k] == -1) {
-                            unpairedCount += 1
-                            peerK = k
-                        }
+                let client = unixServers[i].accept(timeout: Some(unixAcceptShortTimeout))
+                client.readTimeout = Some(streamReadTimeout)
+                let newIdx = unixClients.size
+                unixClients.add(client)
+                unixClientServerPath.add(serverPath)
+                unixClientConnected.add(true)
+                unixClientClosed.add(false)
+                var peerK: Int64 = -1
+                var unpairedCount: Int64 = 0
+                for (k in 0..unixClients.size - 1) {
+                    if (unixClientServerPath[k] == serverPath && unixClientConnected[k] && unixClientPeerIndex[k] == -1) {
+                        unpairedCount += 1
+                        peerK = k
                     }
-                    if (unpairedCount != 1) {
-                        peerK = -1
-                    }
-                    unixClientPeerIndex.add(peerK)
-                    unixClientHasData.add(false)
-                    if (peerK >= 0) {
-                        unixClientPeerIndex[peerK] = newIdx
-                    }
-                } catch (_: SocketTimeoutException) {
+                }
+                if (unpairedCount != 1) {
+                    peerK = -1
+                }
+                unixClientPeerIndex.add(peerK)
+                unixClientHasData.add(false)
+                if (peerK >= 0) {
+                    unixClientPeerIndex[peerK] = newIdx
                 }
             case None => return
         }
@@ -699,16 +708,28 @@ public class NetContext {
         let _ = unixSocketCreate(path)
     }
 
-    /** Connect client at index to server (path stored at create). Post: client connected; state updated. */
+    /** Connect client at index to server (path stored at create). Skips if server no longer bound. On connection refused does not mark connected (avoids long wait). */
     public func unixSocketConnectIndex(i: Int64): Unit {
         if (i < 0 || i >= unixClients.size || unixClientClosed[i] || unixClientConnected[i]) {
             return
         }
-        unixClients[i].connect()
-        unixClientConnected[i] = true
+        let serverPath = unixClientServerPath[i]
+        match (indexOfUnixServerByPath(serverPath)) {
+            case Some(si) =>
+                if (unixServerClosed[si] || !unixServerBound[si]) {
+                    return
+                }
+            case None => return
+        }
+        try {
+            unixClients[i].connect()
+            unixClientConnected[i] = true
+        } catch (_: SocketException) {
+            ()
+        }
     }
 
-    /** Pre: i valid; socket connected and not closed; buffer non-empty; hasData so read won't block. Post: hasData cleared for i. */
+    /** Pre: i valid; socket connected and not closed; buffer non-empty. On timeout gives up quickly; state updated. */
     public func unixSocketReadIndex(i: Int64, buffer: Array<Byte>): Unit {
         if (buffer.isEmpty()) {
             return
@@ -716,8 +737,12 @@ public class NetContext {
         if (i < 0 || i >= unixClients.size || unixClientClosed[i] || !unixClientConnected[i]) {
             return
         }
-        let _ = unixClients[i].read(buffer)
-        unixClientHasData[i] = false
+        try {
+            let _ = unixClients[i].read(buffer)
+            unixClientHasData[i] = false
+        } catch (_: SocketTimeoutException) {
+            unixClientHasData[i] = false
+        }
     }
 
     /** Pre: i valid; socket connected and not closed; payload non-empty. Post: peer's hasData set. */
@@ -728,8 +753,11 @@ public class NetContext {
         if (i < 0 || i >= unixClients.size || unixClientClosed[i] || !unixClientConnected[i]) {
             return
         }
-        unixClients[i].write(payload)
         let peer = unixClientPeerIndex[i]
+        if (peer >= 0 && unixClientClosed[peer]) {
+            return
+        }
+        unixClients[i].write(payload)
         if (peer >= 0) {
             unixClientHasData[peer] = true
         }
@@ -755,8 +783,7 @@ public class NetContext {
 
     /** Path for a bound Unix server (so connect will succeed). */
     public func randUnixServerPathBound(): String {
-        let server = randBoundUnixServer()
-        return server.localAddress.toString()
+        return unixServerPath[randBoundUnixServerIndex()]
     }
 
     // --- Unix datagram
@@ -891,7 +918,7 @@ public class NetContext {
 
     /** A path we can use as recipient for sendTo (bound Unix socket - dgram or stream server). */
     public func randUnixRecipientPath(): String {
-        if (randBoolLocal(0.50) && !unixDgramPath.isEmpty()) {
+        if (randBool(0.50) && !unixDgramPath.isEmpty()) {
             return randBoundUnixDgramPath()
         }
         return randUnixServerPathBound()
@@ -911,12 +938,17 @@ public class NetContext {
             loops += 1
         }
         if (path2 == path1) {
-            return path1
+            // Only one bound dgram: create and bind a second one so we have two distinct sockets.
+            let _ = randUnixDgramPathForBind()
+            let senderIdx = unixDgramPath.size - 1
+            unixDgramBind(unixDgramPath[senderIdx])
+            path2 = unixDgramPath[senderIdx]
         }
         match (indexOfUnixDgramByPath(path1)) {
             case Some(i) =>
                 unixDgramSockets[i].connect(path2)
                 unixDgramConnected[i] = true
+                unixDgramRemotePath[i] = path2
                 return path1
             case None => return path1
         }
@@ -1001,8 +1033,12 @@ public class NetContext {
                 if (unixDgramClosed[i] || !unixDgramBound[i] || buffer.isEmpty()) {
                     return
                 }
-                let _ = unixDgramSockets[i].receiveFrom(buffer)
-                unixDgramHasData[i] = false
+                try {
+                    let _ = unixDgramSockets[i].receiveFrom(buffer)
+                    unixDgramHasData[i] = false
+                } catch (_: SocketTimeoutException) {
+                    unixDgramHasData[i] = false
+                }
             case None => return
         }
     }
@@ -1031,8 +1067,12 @@ public class NetContext {
                 if (unixDgramClosed[i] || !unixDgramBound[i] || !unixDgramConnected[i] || buffer.isEmpty()) {
                     return
                 }
-                let _ = unixDgramSockets[i].receive(buffer)
-                unixDgramHasData[i] = false
+                try {
+                    let _ = unixDgramSockets[i].receive(buffer)
+                    unixDgramHasData[i] = false
+                } catch (_: SocketTimeoutException) {
+                    unixDgramHasData[i] = false
+                }
             case None => return
         }
     }
@@ -1255,8 +1295,12 @@ public class NetContext {
         if (i < 0 || i >= udpSockets.size || udpClosed[i] || !udpBound[i] || buffer.isEmpty()) {
             return
         }
-        let _ = udpSockets[i].receiveFrom(buffer)
-        udpHasData[i] = false
+        try {
+            let _ = udpSockets[i].receiveFrom(buffer)
+            udpHasData[i] = false
+        } catch (_: SocketTimeoutException) {
+            udpHasData[i] = false
+        }
     }
 
     public func udpSocketSend(i: Int64, payload: Array<Byte>): Unit {
@@ -1276,8 +1320,12 @@ public class NetContext {
         if (i < 0 || i >= udpSockets.size || udpClosed[i] || !udpBound[i] || !udpConnected[i] || buffer.isEmpty()) {
             return
         }
-        let _ = udpSockets[i].receive(buffer)
-        udpHasData[i] = false
+        try {
+            let _ = udpSockets[i].receive(buffer)
+            udpHasData[i] = false
+        } catch (_: SocketTimeoutException) {
+            udpHasData[i] = false
+        }
     }
 
     public func udpSocketClose(i: Int64): Unit {

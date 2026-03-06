@@ -75,15 +75,14 @@ func randomPathIn(folder: String): () -> Path {{ =>
 
 // Entry: build libFs with shared box, ensure tmp exists, run withFile under executeUntilDone in runInContext.
 public func main_fs_testing(): Unit {
-    for (i in 0..100) {
-        let seed: Option<UInt64> = None
+    for (i in 0..1000) {
         let fg = FsContext("tmp")
         fg.cleanup()
-        withSeed(seed) {
+        withSeed(None) {
             fg.initialiseContext()
-            executeUntilDoneFast(
+            executeUntilDone(
                 getLibFs(fg),
-                50, 
+                1000, 
                 @RunRandomly([path in randomPathIn("tmp"), k in randFuncAlt<File, Unit>], dummyTester))
         }
         fg.cleanup()

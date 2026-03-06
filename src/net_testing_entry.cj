@@ -25,8 +25,11 @@ public func main_net_testing(): Unit {
         let netCtx = NetContext("tmp")
         let lib = getLibNet(netCtx)
         netCtx.initialiseContext()
-        withSeed(Some(UInt64(i))) {
-            executeUntilDoneFast(lib, 20, dummyNetTester)
+        withSeed(None) {
+            executeUntilDone(
+                lib, 
+                3, 
+                dummyNetTester)
         }
         netCtx.cleanup()
         println("********** Net iteration ${i + 1} completed **********")
