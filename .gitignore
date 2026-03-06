@@ -1,0 +1,19 @@
+.vscode
+.cache
+target
+
+# cangjie
+*.cjo
+*cache.json
+.cjpm-history
+.bin-cache
+*.errlog
+*.outlog
+*.macrocall
+
+tmp/
+
+# Profiler output
+profile/
+*.prof
+perf.data
