@@ -21,9 +21,9 @@
 [profile.run.env]
   cjStackSize = { value = "1gb", splice-type = "replace" }
   # Large heap so GC threshold can be high
-  cjHeapSize = { value = "4GB",  splice-type = "replace" }
+  cjHeapSize = { value = "4gb",  splice-type = "replace" }
   # GC only when heap is nearly full
-  cjGCThreshold = { value = "4GB",  splice-type = "replace" }
+  cjGCThreshold = { value = "4gb",  splice-type = "replace" }
   # Skip GC if last GC was less than 1 hour ago
   cjGCInterval = { value = "3600s", splice-type = "replace" }
   # Backup GC at most once per day

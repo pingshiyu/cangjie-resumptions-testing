@@ -1337,6 +1337,9 @@ public class NetContext {
     }
 
     public func cleanup(): Unit {
+        // #region agent log
+        let _ = File.appendTo(Path("/home/pings/projects/.cursor/debug-66d5f9.log"), ("{\"sessionId\":\"66d5f9\",\"location\":\"net_testing_generators.cj:cleanup\",\"message\":\"cleanup_start\",\"dataStr\":\"entry\",\"hypothesisId\":\"C\"}\n").toArray())
+        // #endregion
         for (i in 0..tcpClients.size) {
             if (!tcpClientClosed[i]) {
                 tcpClients[i].close()
@@ -1371,5 +1374,8 @@ public class NetContext {
         for (j in 0..unixPathsInUse.size) {
             removeIfExists(Path(unixPathsInUse[j]), recursive: true)
         }
+        // #region agent log
+        let _ = File.appendTo(Path("/home/pings/projects/.cursor/debug-66d5f9.log"), ("{\"sessionId\":\"66d5f9\",\"location\":\"net_testing_generators.cj:cleanup\",\"message\":\"cleanup_done\",\"dataStr\":\"exit\",\"hypothesisId\":\"C\"}\n").toArray())
+        // #endregion
     }
 }
