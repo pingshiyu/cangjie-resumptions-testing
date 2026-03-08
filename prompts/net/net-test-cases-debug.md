@@ -7,7 +7,7 @@ However, during execution, we are seeing runtime errors during random execution.
 The current functions cover the `net` library, ensure that coverage stays the same, or is increased. 
 For reference, the APIs being tested is in `cangjie/cangjie_runtime/stdlib/libs/std/net`.
 
-Do not use try/catch statements to consume errors: ensure that only valid inputs are inputted into the functions and that after execution, the internal state models the concrete state accurately.
+Do not use try/catch statements to consume errors: ensure that only valid inputs are inputted into the functions and that after execution, the internal state models the concrete state accurately. Prefer defining custom generators that always satisfies the preconditions.
 When possible, use debug traces during development to ensure that your internal abstract model captures the concrete state of the effect.
 
 Take into consideration that execution of the effects (functions in the net library) should be quick. Thus long waits should be avoided. In those cases, if we are actually sending out network requests, it would be acceptable to timeout and give up to avoid waiting too long. Do make sure that we don't end up in the trivial case where no messages are being sent or received though (if we just time out everything).
