@@ -28,7 +28,8 @@ public func executeUntilDone(lib: ArrayList<UnitFn>, maxFuel: Int64, fn: () -> U
         let hasResumptions = ress.size > 0
         if (fuel.value > 0 && cjRandom<Bool>()) {
             fuel.value -= 1
-            let chosenF = lib[randomIntInRange(0, lib.size)]
+            let libIndex = randomIntInRange(0, lib.size)
+            let chosenF = lib[libIndex]
             chosenF()
         } else if (hasResumptions) {
             let chosenR = ress.remove(at: randomIntInRange(0, ress.size))

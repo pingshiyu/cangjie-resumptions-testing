@@ -6,6 +6,6 @@ export ARCH=x86_64
 export SDK_NAME=linux-x64
 export CANGJIE_VERSION=1.0.0
 export STDX_VERSION=1
-export CANGJIE_STDX_PATH=$WORKSPACE/cangjie_stdx/target/linux_${ARCH}_cjnative/static/stdx
+export CANGJIE_STDX_PATH=$WORKSPACE/software/linux_x86_64_cjnative/static/stdx
 source $WORKSPACE/software/cangjie/envsetup.sh
 cjpm build
