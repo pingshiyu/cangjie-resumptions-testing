@@ -1,4 +1,4 @@
-package cangjie_experiments.resumptions
+package cangjie_experiments
 
 import std.collection.*
 import cangjie_experiments.utils.*

@@ -53,18 +53,18 @@ func getContext() : ArrayList<UnitFn> {
 
     let libCollectionsH = ArrayList([
         // these functions are higher order
-        // @RunRandomly([f in randFuncAlt<Int64, Int64>, ls in cjRandom<ArrayList<Int64>>], map_),
-        @RunRandomly([f in randFuncAlt<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], map_),
-        @RunRandomly([f in randFuncAlt<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], filter_),
-        @RunRandomly([f in randFuncAlt<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], all_),
-        @RunRandomly([f in randFuncAlt<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], none_),
-        @RunRandomly([f in randFuncAlt<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], any_),
-        @RunRandomly([f in randFuncAlt<(Int8, Int8), Int8>, ls in cjRandom<ArrayList<Int8>>], reduce_),
-        @RunRandomly([f in randFuncAlt<Int8, ?Bool>, ls in cjRandom<ArrayList<Int8>>], filterMap_),
-        @RunRandomly([f in randFuncAlt<Bool, ArrayList<Bool>>, ls in cjRandom<ArrayList<Bool>>], flatMap_),
-        @RunRandomly([f in randFuncAlt<Bool, Unit>, ls in cjRandom<ArrayList<Bool>>], forEach_),
-        @RunRandomly([f in randFuncAlt<(Int64, Bool), Int64>, e in randInt64, ls in cjRandom<ArrayList<Bool>>], fold_),
-        @RunRandomly([f in randFuncAlt<Int64, Unit>, ls in cjRandom<ArrayList<Int64>>], inspect_),
+        // @RunRandomly([f in randFunc<Int64, Int64>, ls in cjRandom<ArrayList<Int64>>], map_),
+        @RunRandomly([f in randFunc<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], map_),
+        @RunRandomly([f in randFunc<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], filter_),
+        @RunRandomly([f in randFunc<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], all_),
+        @RunRandomly([f in randFunc<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], none_),
+        @RunRandomly([f in randFunc<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], any_),
+        @RunRandomly([f in randFunc<(Int8, Int8), Int8>, ls in cjRandom<ArrayList<Int8>>], reduce_),
+        @RunRandomly([f in randFunc<Int8, ?Bool>, ls in cjRandom<ArrayList<Int8>>], filterMap_),
+        @RunRandomly([f in randFunc<Bool, ArrayList<Bool>>, ls in cjRandom<ArrayList<Bool>>], flatMap_),
+        @RunRandomly([f in randFunc<Bool, Unit>, ls in cjRandom<ArrayList<Bool>>], forEach_),
+        @RunRandomly([f in randFunc<(Int64, Bool), Int64>, e in randInt64, ls in cjRandom<ArrayList<Bool>>], fold_),
+        @RunRandomly([f in randFunc<Int64, Unit>, ls in cjRandom<ArrayList<Int64>>], inspect_),
     ])
     let libCollections = ArrayList([
         // End operations from end_operation.cj
@@ -95,7 +95,7 @@ func getContext() : ArrayList<UnitFn> {
     return overallLib
 }
 
-func main_library_testing() {
+func main_collections_testing() {
     let lib = getContext()
     // runInContext(None, lib, 100) {
     //     executeRandomly(100)
@@ -104,19 +104,19 @@ func main_library_testing() {
     // expectation: two runs should result in the same sequence of functions called: the 
     // calls to the unknown functions `f` are controlled.
     println("comparing two runs of functions:")
-    let seed : Option<UInt64> = Some(Random().nextUInt64()) // None // Some(55)
+    let seed : Option<UInt64> = Some(55)
     withSeed(seed) {
         executeUntilDone(
             lib,
             20,
-            @RunRandomly([f in randFuncAlt<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], map_))
+            @RunRandomly([f in randFunc<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], map_))
     }
     println("================================================")
     withSeed(seed) {
         executeUntilDone(
             lib,
             20,
-            @RunRandomly([f in randFuncAlt<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], filter_))
+            @RunRandomly([f in randFunc<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], filter_))
     }
     return 0
 }

@@ -319,13 +319,18 @@ public class NetContext {
         let _ = tcpServerAccept(i)
     }
 
-    /** Pre: i valid index. Post: server closed; state marks closed. */
+    /** Pre: i valid index. Post: server closed; state marks closed; all clients connected to this server marked disconnected. */
     public func tcpServerCloseIndex(i: Int64): Unit {
         if (i < 0 || i >= tcpServers.size || tcpServerClosed[i]) {
             return
         }
         tcpServers[i].close()
         tcpServerClosed[i] = true
+        for (j in 0..tcpClients.size) {
+            if (tcpClientServerIndex[j] == i) {
+                tcpClientConnected[j] = false
+            }
+        }
     }
 
     /** Pre: address is IPv4 or IPv6. Post: new TcpSocket created and recorded; not connected. */
@@ -357,8 +362,6 @@ public class NetContext {
             tcpClients[i].connect(timeout: Some(connectShortTimeout))
             tcpClientConnected[i] = true
         } catch (_: SocketTimeoutException) {
-            ()
-        } catch (_: SocketException) {
             ()
         }
     }
@@ -397,13 +400,17 @@ public class NetContext {
         }
     }
 
-    /** Pre: i valid index. Post: socket closed; state marks closed. */
+    /** Pre: i valid index. Post: socket closed; state marks closed; peer (if any) marked disconnected so no read/write on broken connection. */
     public func tcpSocketCloseIndex(i: Int64): Unit {
         if (i < 0 || i >= tcpClients.size || tcpClientClosed[i]) {
             return
         }
+        let peer = tcpClientPeerIndex[i]
         tcpClients[i].close()
         tcpClientClosed[i] = true
+        if (peer >= 0 && peer < tcpClients.size) {
+            tcpClientConnected[peer] = false
+        }
     }
 
     public func initialiseContext(): Unit {
@@ -686,6 +693,11 @@ public class NetContext {
                 if (!unixServerClosed[i]) {
                     unixServers[i].close()
                     unixServerClosed[i] = true
+                    for (j in 0..unixClients.size) {
+                        if (unixClientServerPath[j] == serverPath) {
+                            unixClientConnected[j] = false
+                        }
+                    }
                 }
             case None => return
         }
@@ -721,12 +733,8 @@ public class NetContext {
                 }
             case None => return
         }
-        try {
-            unixClients[i].connect()
-            unixClientConnected[i] = true
-        } catch (_: SocketException) {
-            ()
-        }
+        unixClients[i].connect()
+        unixClientConnected[i] = true
     }
 
     /** Pre: i valid; socket connected and not closed; buffer non-empty. On timeout gives up quickly; state updated. */
@@ -767,8 +775,12 @@ public class NetContext {
         if (i < 0 || i >= unixClients.size || unixClientClosed[i]) {
             return
         }
+        let peer = unixClientPeerIndex[i]
         unixClients[i].close()
         unixClientClosed[i] = true
+        if (peer >= 0 && peer < unixClients.size) {
+            unixClientConnected[peer] = false
+        }
     }
 
     /** Optional: validate every path in unixPathsInUse exists as a socket file (like FsContext.validateStateMatchesFilesystem). */
@@ -1083,13 +1095,19 @@ public class NetContext {
                 if (!unixDgramClosed[i]) {
                     unixDgramSockets[i].close()
                     unixDgramClosed[i] = true
+                    for (j in 0..unixDgramSockets.size) {
+                        if (!unixDgramClosed[j] && unixDgramRemotePath[j] == path) {
+                            unixDgramConnected[j] = false
+                            unixDgramRemotePath[j] = ""
+                        }
+                    }
                 }
             case None => return
         }
     }
 
     // --- UDP generators (index-based: UdpSocket has no Equatable)
-    private static let udpConnectPort: UInt16 = 54321u16
+    private var udpConnectPortCurrent: UInt16 = 54321u16
 
     private static let udpReceiveTimeout: Duration = 100 * Duration.millisecond
 
@@ -1143,7 +1161,7 @@ public class NetContext {
             }
         }
         let i = randBoundUdpSocketIndex()
-        let remote = IPSocketAddress(IPv4Address.localhost, udpConnectPort)
+        let remote = IPSocketAddress(IPv4Address.localhost, udpConnectPortCurrent)
         udpSockets[i].connect(remote)
         udpConnected[i] = true
         return i
@@ -1155,29 +1173,14 @@ public class NetContext {
         return randSmallBytesLocal(n)
     }
 
-    /** Recipient same family as local (IPv4). */
+    /** Recipient is a bound, non-closed UDP socket's address so sendTo never targets a closed port. */
     public func randUdpRecipientAddress(): SocketAddress {
-        return IPSocketAddress(IPv4Address.localhost, udpConnectPort)
+        let j = randBoundUdpSocketIndex()
+        return IPSocketAddress(IPv4Address.localhost, udpBoundPort[j])
     }
 
-    /** Index of a bound UDP socket that has data to receive (for receiveFrom). Ensures one by sending to it if needed. */
+    /** Index of a bound UDP socket that has data to receive (for receiveFrom). Always ensures by sending in this run so receiveFrom never sees a stale or closed sender. */
     public func randBoundUdpSocketIndexWithData(): Int64 {
-        for (i in 0..udpSockets.size) {
-            if (udpBound[i] && !udpClosed[i] && udpHasData[i]) {
-                return i
-            }
-        }
-        for (i in 0..udpSockets.size) {
-            if (udpBound[i] && !udpClosed[i]) {
-                let recipient = IPSocketAddress(IPv4Address.localhost, udpBoundPort[i])
-                let sender = randBoundUdpSocketIndex()
-                if (sender != i) {
-                    let payload = randSmallByteArrayUdp()
-                    udpSocketSendTo(sender, recipient, payload)
-                    return i
-                }
-            }
-        }
         let i = randBoundUdpSocketIndex()
         var senderIdx = randBoundUdpSocketIndex()
         if (senderIdx == i) {
@@ -1191,19 +1194,19 @@ public class NetContext {
         return i
     }
 
-    /** Ensures a socket is bound at udpConnectPort; returns its index. */
+    /** Ensures a socket is bound at udpConnectPortCurrent; returns its index. */
     private func ensureBoundUdpSocketAtConnectPort(): Int64 {
         for (i in 0..udpSockets.size) {
-            if (udpBound[i] && !udpClosed[i] && udpBoundPort[i] == udpConnectPort) {
+            if (udpBound[i] && !udpClosed[i] && udpBoundPort[i] == udpConnectPortCurrent) {
                 return i
             }
         }
-        let socket = UdpSocket(bindAt: udpConnectPort)
+        let socket = UdpSocket(bindAt: udpConnectPortCurrent)
         udpSockets.add(socket)
         udpBound.add(false)
         udpConnected.add(false)
         udpClosed.add(false)
-        udpBoundPort.add(udpConnectPort)
+        udpBoundPort.add(udpConnectPortCurrent)
         udpHasData.add(false)
         socket.bind()
         udpBound[udpBound.size - 1] = true
@@ -1259,7 +1262,7 @@ public class NetContext {
         if (i < 0 || i >= udpSockets.size || udpClosed[i] || !udpBound[i] || udpConnected[i]) {
             return
         }
-        udpSockets[i].connect(IPSocketAddress(IPv4Address.localhost, udpConnectPort))
+        udpSockets[i].connect(IPSocketAddress(IPv4Address.localhost, udpConnectPortCurrent))
         udpConnected[i] = true
     }
 
@@ -1278,21 +1281,31 @@ public class NetContext {
         if (payload.isEmpty()) {
             return
         }
-        udpSockets[i].sendTo(recipient, payload)
         match (portFromSocketAddress(recipient)) {
             case Some(port) =>
+                var recipientLive = false
+                for (j in 0..udpSockets.size) {
+                    if (udpBound[j] && !udpClosed[j] && udpBoundPort[j] == port) {
+                        recipientLive = true
+                        break
+                    }
+                }
+                if (!recipientLive) {
+                    return
+                }
+                udpSockets[i].sendTo(recipient, payload)
                 for (j in 0..udpSockets.size) {
                     if (udpBound[j] && !udpClosed[j] && udpBoundPort[j] == port) {
                         udpHasData[j] = true
                         break
                     }
                 }
-            case None => ()
+            case None => return
         }
     }
 
     public func udpSocketReceiveFrom(i: Int64, buffer: Array<Byte>): Unit {
-        if (i < 0 || i >= udpSockets.size || udpClosed[i] || !udpBound[i] || buffer.isEmpty()) {
+        if (i < 0 || i >= udpSockets.size || udpClosed[i] || !udpBound[i] || buffer.isEmpty() || !udpHasData[i]) {
             return
         }
         try {
@@ -1307,9 +1320,19 @@ public class NetContext {
         if (i < 0 || i >= udpSockets.size || udpClosed[i] || !udpBound[i] || !udpConnected[i] || payload.isEmpty()) {
             return
         }
+        var peerAtConnectPortExists = false
+        for (k in 0..udpSockets.size) {
+            if (udpBound[k] && !udpClosed[k] && udpBoundPort[k] == udpConnectPortCurrent) {
+                peerAtConnectPortExists = true
+                break
+            }
+        }
+        if (!peerAtConnectPortExists) {
+            return
+        }
         udpSockets[i].send(payload)
         for (j in 0..udpSockets.size) {
-            if (udpBound[j] && !udpClosed[j] && udpBoundPort[j] == udpConnectPort) {
+            if (udpBound[j] && !udpClosed[j] && udpBoundPort[j] == udpConnectPortCurrent) {
                 udpHasData[j] = true
                 break
             }
@@ -1318,6 +1341,16 @@ public class NetContext {
 
     public func udpSocketReceive(i: Int64, buffer: Array<Byte>): Unit {
         if (i < 0 || i >= udpSockets.size || udpClosed[i] || !udpBound[i] || !udpConnected[i] || buffer.isEmpty()) {
+            return
+        }
+        var peerAtConnectPortExists = false
+        for (k in 0..udpSockets.size) {
+            if (udpBound[k] && !udpClosed[k] && udpBoundPort[k] == udpConnectPortCurrent) {
+                peerAtConnectPortExists = true
+                break
+            }
+        }
+        if (!peerAtConnectPortExists) {
             return
         }
         try {
@@ -1332,8 +1365,19 @@ public class NetContext {
         if (i < 0 || i >= udpSockets.size || udpClosed[i]) {
             return
         }
+        let wasBoundAtConnectPort = udpBound[i] && udpBoundPort[i] == udpConnectPortCurrent
         udpSockets[i].close()
         udpClosed[i] = true
+        udpHasData[i] = false
+        if (wasBoundAtConnectPort) {
+            for (j in 0..udpSockets.size) {
+                udpConnected[j] = false
+            }
+            udpConnectPortCurrent = if (udpConnectPortCurrent >= 65000u16) { 54321u16 } else { udpConnectPortCurrent + 1u16 }
+        }
+        for (j in 0..udpSockets.size) {
+            udpHasData[j] = false
+        }
     }
 
     public func cleanup(): Unit {

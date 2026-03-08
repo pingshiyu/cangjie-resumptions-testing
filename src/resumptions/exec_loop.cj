@@ -7,7 +7,7 @@ import std.unittest.prop_test.*
 import std.unittest.common.*
 import cangjie_experiments.generators.*
 
-public func randFuncAlt<A, B>(): (A) -> B where B <: Arbitrary<B> {{ a => 
+public func randFunc<A, B>(): (A) -> B where B <: Arbitrary<B> {{ a => 
     perform Switch()
     cjRandom<B>()
 }}
