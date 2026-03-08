@@ -3,18 +3,9 @@ package cangjie_experiments.resumptions
 import stdx.effect.*
 import std.collection.*
 import std.random.*
-import std.fs.*
 import std.unittest.prop_test.*
 import std.unittest.common.*
 import cangjie_experiments.generators.*
-
-// #region agent log
-private const debugLogPath: String = "/home/pings/projects/.cursor/debug-66d5f9.log"
-private func execDebugLog(location: String, message: String, dataStr: String, hypothesisId: String): Unit {
-    let line = "{\"sessionId\":\"66d5f9\",\"location\":\"" + location + "\",\"message\":\"" + message + "\",\"dataStr\":\"" + dataStr + "\",\"hypothesisId\":\"" + hypothesisId + "\"}\n"
-    let _ = File.appendTo(Path(debugLogPath), line.toArray())
-}
-// #endregion
 
 public func randFuncAlt<A, B>(): (A) -> B where B <: Arbitrary<B> {{ a => 
     perform Switch()
@@ -35,25 +26,13 @@ public func executeUntilDone(lib: ArrayList<UnitFn>, maxFuel: Int64, fn: () -> U
     while (!(done.value)) {
         // resume a random function or a resumption from the list
         let hasResumptions = ress.size > 0
-        // #region agent log
-        execDebugLog("exec_loop.cj:while", "loop_top", "fuel=" + fuel.value.toString() + " ress=" + ress.size.toString() + " done=" + done.value.toString() + " libSize=" + lib.size.toString(), "A,E")
-        // #endregion
         if (fuel.value > 0 && cjRandom<Bool>()) {
             fuel.value -= 1
             let libIndex = randomIntInRange(0, lib.size)
-            // #region agent log
-            execDebugLog("exec_loop.cj:run_lib", "before_chosenF", "libSize=" + lib.size.toString() + " libIndex=" + libIndex.toString(), "A,B")
-            // #endregion
             let chosenF = lib[libIndex]
             chosenF()
         } else if (hasResumptions) {
-            // #region agent log
-            execDebugLog("exec_loop.cj:resume", "before_resume", "ressSize=" + ress.size.toString(), "E")
-            // #endregion
             let chosenR = ress.remove(at: randomIntInRange(0, ress.size))
-            // #region agent log
-            execDebugLog("exec_loop.cj:resume", "after_remove_before_resume", "ressSize=" + ress.size.toString(), "E")
-            // #endregion
             resume chosenR with ()
         } else {
             println("WARNING: no resumptions, didn't choose to run a function. skipping")
