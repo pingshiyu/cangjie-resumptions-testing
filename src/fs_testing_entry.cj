@@ -83,7 +83,7 @@ public func main_fs_testing(): Unit {
             executeUntilDone(
                 getLibFs(fg),
                 1000, 
-                @RunRandomly([path in randomPathIn("tmp"), k in randFuncAlt<File, Unit>], dummyTester))
+                @RunRandomly([path in randomPathIn("tmp"), k in randFunc<File, Unit>], dummyTester))
         }
         fg.cleanup()
         println("********** Iteration ${i+1} completed **********")
