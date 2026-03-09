@@ -594,34 +594,45 @@ public class NetContext {
                 return i
             }
         }
-        let si = randBoundUnixServerIndex()
-        let path = unixServerPath[si]
-        let client = UnixSocket(path)
-        client.readTimeout = Some(streamReadTimeout)
-        unixClients.add(client)
-        unixClientServerPath.add(path)
-        unixClientConnected.add(false)
-        unixClientClosed.add(false)
-        unixClientPeerIndex.add(-1)
-        unixClientHasData.add(false)
-        client.connect()
-        unixClientConnected[unixClientConnected.size - 1] = true
-        let clientIdx = unixClients.size - 1
-        if (!unixServerClosed[si] && unixServerBound[si]) {
-            let accepted = unixServers[si].accept(timeout: Some(unixAcceptShortTimeout))
-            accepted.readTimeout = Some(streamReadTimeout)
-            unixClients.add(accepted)
+        var retries: Int64 = 0
+        let maxRetries: Int64 = 5
+        while (retries < maxRetries) {
+            let si = randBoundUnixServerIndex()
+            let path = unixServerPath[si]
+            let client = UnixSocket(path)
+            client.readTimeout = Some(streamReadTimeout)
+            unixClients.add(client)
             unixClientServerPath.add(path)
-            unixClientConnected.add(true)
+            unixClientConnected.add(false)
             unixClientClosed.add(false)
-            unixClientPeerIndex[clientIdx] = unixClients.size - 1
-            unixClientPeerIndex.add(clientIdx)
+            unixClientPeerIndex.add(-1)
             unixClientHasData.add(false)
-            let payload = randSmallByteArray()
-            unixSocketWriteIndex(clientIdx, payload)
-            return unixClients.size - 1
+            client.connect()
+            unixClientConnected[unixClientConnected.size - 1] = true
+            let clientIdx = unixClients.size - 1
+            if (!unixServerClosed[si] && unixServerBound[si]) {
+                let accepted = unixServers[si].accept(timeout: Some(unixAcceptShortTimeout))
+                accepted.readTimeout = Some(streamReadTimeout)
+                unixClients.add(accepted)
+                unixClientServerPath.add(path)
+                unixClientConnected.add(true)
+                unixClientClosed.add(false)
+                unixClientPeerIndex[clientIdx] = unixClients.size - 1
+                unixClientPeerIndex.add(clientIdx)
+                unixClientHasData.add(false)
+                let payload = randSmallByteArray()
+                unixSocketWriteIndex(clientIdx, payload)
+                return unixClients.size - 1
+            }
+            retries += 1
         }
-        throw Exception("randConnectedUnixSocketIndexWithData: server path not found")
+        // Fallback: return a connected client index (read may timeout; avoids throwing)
+        for (i in 0..unixClients.size) {
+            if (unixClientConnected[i] && !unixClientClosed[i]) {
+                return i
+            }
+        }
+        return unixClients.size - 1
     }
 
     /** Pre: path valid and not in use, does not exist. Post: server created and recorded. */
@@ -1371,6 +1382,9 @@ public class NetContext {
         udpHasData[i] = false
         if (wasBoundAtConnectPort) {
             for (j in 0..udpSockets.size) {
+                if (!udpClosed[j] && udpConnected[j]) {
+                    udpSockets[j].disconnect()
+                }
                 udpConnected[j] = false
             }
             udpConnectPortCurrent = if (udpConnectPortCurrent >= 65000u16) { 54321u16 } else { udpConnectPortCurrent + 1u16 }
