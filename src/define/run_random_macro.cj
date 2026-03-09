@@ -48,6 +48,21 @@ func parseGenerators(input: Tokens): (List<String>, List<Expr>) {
     return (varNames, generators)
 }
 
+// Find index of the token after the matching ']' (depth-counting from startFrom).
+func findBracketEnd(input: Tokens, startFrom: Int64): Int64 {
+    var bracketIdx = startFrom
+    var depth = 1
+    while (bracketIdx < input.size && depth > 0) {
+        if (input[bracketIdx].value == "[") {
+            depth++
+        } else if (input[bracketIdx].value == "]") {
+            depth--
+        }
+        bracketIdx++
+    }
+    return bracketIdx
+}
+
 // Parse the function reference after the generator list
 func parseFunctionRef(input: Tokens, startIdx: Int64): (Expr, Int64) {
     var i = startIdx
@@ -65,39 +80,19 @@ func parseFunctionRef(input: Tokens, startIdx: Int64): (Expr, Int64) {
     return parseFnRes
 }
 
-public macro RunRandomly(input: Tokens): Tokens {
-    // Parse input: [x in randInt64, y in randBool], f
-    let (varNames, generators) = parseGenerators(input)
-    
-    // Find the closing bracket ']' and parse the function reference
-    var bracketIdx = 1
-    var depth = 1
-    while (bracketIdx < input.size && depth > 0) {
-        if (input[bracketIdx].value == "[") {
-            depth++
-        } else if (input[bracketIdx].value == "]") {
-            depth--
-        }
-        bracketIdx++
-    }
-    
-    let (funcRef, _) = parseFunctionRef(input, bracketIdx)
-    
-    // Generate the closure: {=> let x = randInt64(); let y = randBool(); f(x, y)}
+// Build expansion tokens for RunRandomly / RunRandomlyQuiet. If verbose, include start/end println.
+func buildRunRandomlyExpansion(varNames: List<String>, generators: List<Expr>, funcRef: Expr, verbose: Bool): Tokens {
     var result = quote(ignoreOutput) + Token(TokenKind.LPAREN, "(") + quote({=>)
-
-    let funcRefStr = funcRef.toTokens().toString()
-    result += quote(println("starting: " + $(funcRefStr));)
-    
-    // Add variable assignments
+    if (verbose) {
+        let funcRefStr = funcRef.toTokens().toString()
+        result += quote(println("starting: " + $(funcRefStr));)
+    }
     for (i in 0..varNames.size) {
         let varToken = Token(TokenKind.IDENTIFIER, varNames[i])
         result += quote(
             let $(varToken) = $(generators[i])()
         )
     }
-    
-    // Add function call with all variables
     var funcCallTokens = quote(let out = $(funcRef))
     if (varNames.size > 0) {
         funcCallTokens += Token(TokenKind.LPAREN, "(")
@@ -111,9 +106,26 @@ public macro RunRandomly(input: Tokens): Tokens {
         funcCallTokens += Token(TokenKind.RPAREN, ")")
     }
     result += funcCallTokens + quote(;)
-    result += quote(println("ending: " + $(funcRefStr));)
+    if (verbose) {
+        let funcRefStr = funcRef.toTokens().toString()
+        result += quote(println("ending: " + $(funcRefStr));)
+    }
     result += quote(return out)
     result += quote(}) + Token(TokenKind.RPAREN, ")")
-    
     return result
+}
+
+public macro RunRandomly(input: Tokens): Tokens {
+    let (varNames, generators) = parseGenerators(input)
+    let bracketIdx = findBracketEnd(input, 1)
+    let (funcRef, _) = parseFunctionRef(input, bracketIdx)
+    return buildRunRandomlyExpansion(varNames, generators, funcRef, true)
+}
+
+// Same as RunRandomly but without per-step println. Use when high step count causes too much allocation (e.g. io fuzzer 1000 iterations).
+public macro RunRandomlyQuiet(input: Tokens): Tokens {
+    let (varNames, generators) = parseGenerators(input)
+    let bracketIdx = findBracketEnd(input, 1)
+    let (funcRef, _) = parseFunctionRef(input, bracketIdx)
+    return buildRunRandomlyExpansion(varNames, generators, funcRef, false)
 }
