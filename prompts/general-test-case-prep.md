@@ -29,3 +29,4 @@ Decide what information does the context need to include, what generators are to
 You can refer to existing examples in `fs_testing_*` and `net_testing_*`. This testing campaign should follow a similar format. 
 
 At the end of the task, please document the overall structure of the fuzzer, the design decisions made and their reasoning (from what has been discovered during development).
+The document should be detailed enough to inform another agent, and humans, of how it was implemented, and allow another agent/human to reimplement the fuzzer, sidestepping the common mistakes that may occur.
