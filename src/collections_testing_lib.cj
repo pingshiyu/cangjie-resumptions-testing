@@ -1,6 +1,7 @@
 package cangjie_experiments
 
 import cangjie_experiments.define.*
+import cangjie_experiments.input_print.*
 import stdx.effect.*
 import std.collection.*
 import std.random.*
@@ -52,8 +53,8 @@ func getContext() : ArrayList<UnitFn> {
     ])
 
     let libCollectionsH = ArrayList([
-        // these functions are higher order
-        // @RunRandomly([f in randFunc<Int64, Int64>, ls in cjRandom<ArrayList<Int64>>], map_),
+        // these functions are higher order; randFunc<...> args are printed as the type string (e.g. randFunc<Int64, Bool>)
+        @RunRandomly([f in randFunc<Int64, Int64>, ls in cjRandom<ArrayList<Int64>>], map_),
         @RunRandomly([f in randFunc<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], map_),
         @RunRandomly([f in randFunc<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], filter_),
         @RunRandomly([f in randFunc<Int64, Bool>, ls in cjRandom<ArrayList<Int64>>], all_),
@@ -87,7 +88,8 @@ func getContext() : ArrayList<UnitFn> {
         @RunRandomly([count in randIntRange_(1, 5), ls in cjRandom<ArrayList<Int64>>], step_),
         // @RunMembers(ExampleClass, randObject<ExampleClass>)
     ])
-    let overallLib = libCollectionsH
+    let overallLib : ArrayList<UnitFn> = ArrayList()
+    overallLib.add(all: libCollectionsH)
     overallLib.add(all:libCollections)
     overallLib.add(all:o1_fns)
     overallLib.add(all:o2_fns)

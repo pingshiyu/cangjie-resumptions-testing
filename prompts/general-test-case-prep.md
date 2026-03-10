@@ -22,7 +22,11 @@ The task for the agnet is to create the files:
 
 The success criterion for a fuzzer is that running the fuzzer in a loop for 1000 iterations should pass without errors.
 
-If you believe a genuine bug is found within the `database` library, in which case these should be recorded down in an .md file separately, then the bug trigger is to be skipped temporarily.
+Implement the InputPrintable interface for all types that are an input to the functions within the fuzzer, to allow for users to trace the calls that leads to bugs when one is found.
+
+For any errors you run into, decide whether this is a real bug within the `io` library, or is it due to inaccurate preconditions. 
+If it is a real bug within the `io` library, record it down in an `.md` file separately, temporarily skip the bug trigger (e.g. by commenting out), and then continue.
+If the error came from an oversight in the plan, also document this and record down what the new precondition should be that the generator satisfies.
 
 Let the agent know that the script `./cjpm-run.sh` can be used to run the function `main.cj`. A function call is alreayd present `main_io_testing()`: this is to be the entry point of the `database` fuzzer.
 

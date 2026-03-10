@@ -26,11 +26,15 @@ public func executeUntilDone(lib: ArrayList<UnitFn>, maxFuel: Int64, fn: () -> U
     while (!(done.value)) {
         // resume a random function or a resumption from the list
         let hasResumptions = ress.size > 0
-        if (fuel.value > 0 && cjRandom<Bool>()) {
+        if (fuel.value > 0 && randBool(0.5)) {
             fuel.value -= 1
             let libIndex = randomIntInRange(0, lib.size)
             let chosenF = lib[libIndex]
-            chosenF()
+            try {
+                chosenF()
+            } handle (_ : Switch, res : Res) {
+                ress.add(res)
+            }
         } else if (hasResumptions) {
             let chosenR = ress.remove(at: randomIntInRange(0, ress.size))
             resume chosenR with ()
