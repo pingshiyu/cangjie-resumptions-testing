@@ -5,10 +5,10 @@ import std.collection.*
 import std.fs.*
 import stdx.effect.*
 import cangjie_experiments.define.*
+import cangjie_experiments.run_random_config.*
 import cangjie_experiments.resumptions.*
 import cangjie_experiments.resumptions.*
 import cangjie_experiments.generators.*
-import cangjie_experiments.input_print.*
 
 // Symlink runners only on non-Windows (symlink APIs may require privileges or differ on Windows).
 @When[os != "Windows"]

@@ -1,7 +1,7 @@
 package cangjie_experiments
 
 import cangjie_experiments.define.*
-import cangjie_experiments.input_print.*
+import cangjie_experiments.run_random_config.*
 import stdx.effect.*
 import std.collection.*
 import std.random.*
@@ -103,10 +103,14 @@ func main_collections_testing() {
     //     executeRandomly(100)
     // }
 
+    // Optional: set RunRandomly verbosity from the entry (default is Full).
+    setRunRandomlyVerbosity(RunRandomlyVerbosity.StartEnd)  // only "starting: f(...)" and "ending: f"
+    // setRunRandomlyVerbosity(RunRandomlyVerbosity.Quiet)     // no per-call output
+
     // expectation: two runs should result in the same sequence of functions called: the 
     // calls to the unknown functions `f` are controlled.
     println("comparing two runs of functions:")
-    let seed : Option<UInt64> = Some(55)
+    let seed : Option<UInt64> = None
     withSeed(seed) {
         executeUntilDone(
             lib,

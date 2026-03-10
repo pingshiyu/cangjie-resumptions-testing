@@ -5,9 +5,9 @@ import std.collection.*
 import std.io.*
 import stdx.effect.*
 import cangjie_experiments.define.*
+import cangjie_experiments.run_random_config.*
 import cangjie_experiments.resumptions.*
 import cangjie_experiments.generators.*
-import cangjie_experiments.input_print.*
 
 public func getLibIo(ctx: IoContext): ArrayList<UnitFn> {
     ArrayList([

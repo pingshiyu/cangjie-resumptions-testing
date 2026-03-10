@@ -7,9 +7,10 @@ import std.collection.*
 import std.net.*
 import std.fs.*
 import cangjie_experiments.define.*
+import cangjie_experiments.run_random_config.*
 import cangjie_experiments.resumptions.*
 import cangjie_experiments.resumptions.*
-import cangjie_experiments.input_print.*
+import cangjie_experiments.generators.*
 
 @When[os != "Windows"]
 func getUnixRunners(netCtx: NetContext): ArrayList<UnitFn> {
