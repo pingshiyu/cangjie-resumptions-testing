@@ -1,5 +1,5 @@
 // Entry point for std.net PBT. Registers all defined executors (TCP, Unix, UDP) and runs them via runInContext.
-package cangjie_experiments
+package cangjie_experiments.side_effects.net
 
 import std.collection.*
 import std.runtime.*

@@ -1,6 +1,6 @@
 // Optional shared/pure generators for net PBT (e.g. randPortInRange) can go here.
 // Currently all generators are methods on NetContext in net_testing_lib.cj.
-package cangjie_experiments
+package cangjie_experiments.side_effects.net
 
 import std.collection.*
 import std.net.*

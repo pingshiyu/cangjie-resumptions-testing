@@ -1,5 +1,5 @@
 // libFs: list of UnitFns from std.fs for PBT. Shared state (Box<Option<File>>) for close-current-file.
-package cangjie_experiments
+package cangjie_experiments.side_effects.fs
 
 import std.collection.*
 import std.fs.*

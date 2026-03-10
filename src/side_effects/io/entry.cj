@@ -1,5 +1,5 @@
 // Entry point for std.io PBT. Runs fuzzer in a loop for 1000 iterations.
-package cangjie_experiments
+package cangjie_experiments.side_effects.io
 
 import std.collection.*
 import std.random.*

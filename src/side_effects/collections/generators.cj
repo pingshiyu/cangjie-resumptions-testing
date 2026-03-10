@@ -1,4 +1,4 @@
-package cangjie_experiments
+package cangjie_experiments.side_effects.collections
 
 import std.collection.*
 import cangjie_experiments.utils.*

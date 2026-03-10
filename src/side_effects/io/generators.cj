@@ -1,5 +1,5 @@
 // IoContext and generators/executors for std.io PBT. In-memory streams only.
-package cangjie_experiments
+package cangjie_experiments.side_effects.io
 
 import std.collection.*
 import std.math.*

@@ -1,7 +1,7 @@
 // NetContext: abstract state and wrappers for std.net PBT.
 // Pre/postcondition specs: see plan (net-test-cases.md) and comments below.
 // Wrappers perform the std.net call and update state so generated calls never need try/catch.
-package cangjie_experiments
+package cangjie_experiments.side_effects.net
 
 import std.collection.*
 import std.net.*

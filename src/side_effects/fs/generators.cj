@@ -1,5 +1,5 @@
 // Path and content generators for filesystem PBT. Tests assume cwd is repo root and use tmp/ under it.
-package cangjie_experiments
+package cangjie_experiments.side_effects.fs
 
 import std.collection.*
 import std.math.*

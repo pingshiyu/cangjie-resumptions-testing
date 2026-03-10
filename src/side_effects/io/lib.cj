@@ -1,5 +1,5 @@
 // libIo: list of UnitFns for std.io PBT. Uses IoContext for generators and executors.
-package cangjie_experiments
+package cangjie_experiments.side_effects.io
 
 import std.collection.*
 import std.io.*

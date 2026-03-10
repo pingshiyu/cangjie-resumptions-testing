@@ -1,4 +1,4 @@
-package cangjie_experiments
+package cangjie_experiments.side_effects.collections
 
 import cangjie_experiments.define.*
 import cangjie_experiments.run_random_config.*
@@ -97,7 +97,7 @@ func getContext() : ArrayList<UnitFn> {
     return overallLib
 }
 
-func main_collections_testing() {
+public func main_collections_testing() {
     let lib = getContext()
     // runInContext(None, lib, 100) {
     //     executeRandomly(100)

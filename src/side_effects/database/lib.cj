@@ -1,5 +1,5 @@
 // getLibDb: list of UnitFns for std.database.sql PBT. Uses DbContext for generators and executors.
-package cangjie_experiments
+package cangjie_experiments.side_effects.database
 
 import std.collection.*
 import stdx.effect.*

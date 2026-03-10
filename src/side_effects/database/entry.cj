@@ -1,5 +1,5 @@
 // Entry point for std.database PBT. Runs fuzzer in a loop for 1000 iterations.
-package cangjie_experiments
+package cangjie_experiments.side_effects.database
 
 import std.collection.*
 import std.random.*
