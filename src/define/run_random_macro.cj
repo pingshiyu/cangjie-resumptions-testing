@@ -85,13 +85,30 @@ func buildRunRandomlyExpansion(varNames: List<String>, generators: List<Expr>, f
     var result = quote(ignoreOutput) + Token(TokenKind.LPAREN, "(") + quote({=>)
     if (verbose) {
         let funcRefStr = funcRef.toTokens().toString()
-        result += quote(println("starting: " + $(funcRefStr));)
+        result += quote(print("starting: " + $(funcRefStr));)
+        result += quote(print("(");)
     }
     for (i in 0..varNames.size) {
         let varToken = Token(TokenKind.IDENTIFIER, varNames[i])
         result += quote(
             let $(varToken) = $(generators[i])()
         )
+    }
+    if (verbose) {
+        for (i in 0..varNames.size) {
+            let varToken = Token(TokenKind.IDENTIFIER, varNames[i])
+            let genStr = generators[i].toTokens().toString()
+            if (genStr.contains("randFunc")) {
+                result += quote(print($(genStr));)
+            } else {
+                result += quote(print($(varToken).inputPrintString());)
+            }
+            if (i < varNames.size - 1) {
+                result += quote(print(", ");)
+            }
+        }
+        result += quote(print(")");)
+        result += quote(println();)
     }
     var funcCallTokens = quote(let out = $(funcRef))
     if (varNames.size > 0) {

@@ -2,10 +2,12 @@
 package cangjie_experiments
 
 import std.collection.*
+import std.io.*
 import stdx.effect.*
 import cangjie_experiments.define.*
 import cangjie_experiments.resumptions.*
 import cangjie_experiments.generators.*
+import cangjie_experiments.input_print.*
 
 public func getLibIo(ctx: IoContext): ArrayList<UnitFn> {
     ArrayList([
@@ -46,13 +48,13 @@ public func getLibIo(ctx: IoContext): ArrayList<UnitFn> {
         @RunRandomly([i in ctx.randStringReaderIndex()], ctx.stringReaderRead),
         @RunRandomly([i in ctx.randStringReaderIndex()], ctx.stringReaderReadln),
         @RunRandomly([i in ctx.randStringReaderIndex()], ctx.stringReaderReadToEnd),
-        @RunRandomly([i in ctx.randStringReaderIndex(), v in ctx.randRune()], ctx.stringReaderReadUntilRune),
-        @RunRandomly([i in ctx.randStringReaderIndex(), predicate in ctx.randPredicateRuneToBool()], ctx.stringReaderReadUntilPred),
+        @RunRandomlyQuiet([i in ctx.randStringReaderIndex(), v in ctx.randRune()], ctx.stringReaderReadUntilRune),
+        @RunRandomlyQuiet([i in ctx.randStringReaderIndex(), predicate in ctx.randPredicateRuneToBool()], ctx.stringReaderReadUntilPred),
         @RunRandomly([bbIndex in ctx.randByteBufferIndex()], ctx.stringWriterCreate),
         @RunRandomly([i in ctx.randStringWriterIndex(), v in ctx.randShortStringForWrite()], ctx.stringWriterWriteString),
         @RunRandomly([i in ctx.randStringWriterIndex(), v in ctx.randInt64ForWrite()], ctx.stringWriterWriteInt64),
         @RunRandomly([i in ctx.randStringWriterIndex(), v in ctx.randBoolForWrite()], ctx.stringWriterWriteBool),
-        @RunRandomly([i in ctx.randStringWriterIndex(), v in ctx.randRune()], ctx.stringWriterWriteRune),
+        @RunRandomlyQuiet([i in ctx.randStringWriterIndex(), v in ctx.randRune()], ctx.stringWriterWriteRune),
         @RunRandomly([i in ctx.randStringWriterIndex()], ctx.stringWriterWriteln),
         @RunRandomly([i in ctx.randStringWriterIndex()], ctx.stringWriterFlush),
     ])

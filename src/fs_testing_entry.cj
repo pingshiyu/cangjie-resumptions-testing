@@ -7,6 +7,7 @@ import std.fs.*
 import cangjie_experiments.define.*
 import cangjie_experiments.resumptions.*
 import cangjie_experiments.generators.*
+import cangjie_experiments.input_print.*
 import std.io.*
 
 /* 

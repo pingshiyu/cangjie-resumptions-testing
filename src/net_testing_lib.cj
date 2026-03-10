@@ -9,6 +9,7 @@ import std.fs.*
 import cangjie_experiments.define.*
 import cangjie_experiments.resumptions.*
 import cangjie_experiments.resumptions.*
+import cangjie_experiments.input_print.*
 
 @When[os != "Windows"]
 func getUnixRunners(netCtx: NetContext): ArrayList<UnitFn> {
