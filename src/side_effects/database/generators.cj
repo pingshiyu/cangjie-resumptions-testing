@@ -1,6 +1,6 @@
 // DbContext and mock Driver/Datasource/Connection/Statement/QueryResult/UpdateResult/Transaction
 // for std.database.sql PBT. Mocks allow fuzzing the API without a real database.
-package cangjie_experiments
+package cangjie_experiments.side_effects.database
 
 import std.collection.*
 import std.math.*

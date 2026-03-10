@@ -1,13 +1,13 @@
 // withFile and entry point for filesystem PBT. Run from repo root so tmp/ is available.
-package cangjie_experiments
+package cangjie_experiments.side_effects.fs
 
 import std.collection.*
 import std.random.*
 import std.fs.*
 import cangjie_experiments.define.*
+import cangjie_experiments.run_random_config.*
 import cangjie_experiments.resumptions.*
 import cangjie_experiments.generators.*
-import cangjie_experiments.input_print.*
 import std.io.*
 
 /* 

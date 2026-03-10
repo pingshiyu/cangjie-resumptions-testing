@@ -1,7 +1,7 @@
-package cangjie_experiments
+package cangjie_experiments.side_effects.collections
 
 import cangjie_experiments.define.*
-import cangjie_experiments.input_print.*
+import cangjie_experiments.run_random_config.*
 import stdx.effect.*
 import std.collection.*
 import std.random.*
@@ -97,16 +97,20 @@ func getContext() : ArrayList<UnitFn> {
     return overallLib
 }
 
-func main_collections_testing() {
+public func main_collections_testing() {
     let lib = getContext()
     // runInContext(None, lib, 100) {
     //     executeRandomly(100)
     // }
 
+    // Optional: set RunRandomly verbosity from the entry (default is Full).
+    setRunRandomlyVerbosity(RunRandomlyVerbosity.StartEnd)  // only "starting: f(...)" and "ending: f"
+    // setRunRandomlyVerbosity(RunRandomlyVerbosity.Quiet)     // no per-call output
+
     // expectation: two runs should result in the same sequence of functions called: the 
     // calls to the unknown functions `f` are controlled.
     println("comparing two runs of functions:")
-    let seed : Option<UInt64> = Some(55)
+    let seed : Option<UInt64> = None
     withSeed(seed) {
         executeUntilDone(
             lib,

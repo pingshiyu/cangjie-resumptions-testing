@@ -1,15 +1,16 @@
 // NetContext: abstract state and wrappers for std.net PBT.
 // Pre/postcondition specs: see plan (net-test-cases.md) and comments below.
 // Wrappers perform the std.net call and update state so generated calls never need try/catch.
-package cangjie_experiments
+package cangjie_experiments.side_effects.net
 
 import std.collection.*
 import std.net.*
 import std.fs.*
 import cangjie_experiments.define.*
+import cangjie_experiments.run_random_config.*
 import cangjie_experiments.resumptions.*
 import cangjie_experiments.resumptions.*
-import cangjie_experiments.input_print.*
+import cangjie_experiments.generators.*
 
 @When[os != "Windows"]
 func getUnixRunners(netCtx: NetContext): ArrayList<UnitFn> {

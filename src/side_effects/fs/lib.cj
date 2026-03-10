@@ -1,14 +1,14 @@
 // libFs: list of UnitFns from std.fs for PBT. Shared state (Box<Option<File>>) for close-current-file.
-package cangjie_experiments
+package cangjie_experiments.side_effects.fs
 
 import std.collection.*
 import std.fs.*
 import stdx.effect.*
 import cangjie_experiments.define.*
+import cangjie_experiments.run_random_config.*
 import cangjie_experiments.resumptions.*
 import cangjie_experiments.resumptions.*
 import cangjie_experiments.generators.*
-import cangjie_experiments.input_print.*
 
 // Symlink runners only on non-Windows (symlink APIs may require privileges or differ on Windows).
 @When[os != "Windows"]

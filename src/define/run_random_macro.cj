@@ -80,13 +80,16 @@ func parseFunctionRef(input: Tokens, startIdx: Int64): (Expr, Int64) {
     return parseFnRes
 }
 
-// Build expansion tokens for RunRandomly / RunRandomlyQuiet. If verbose, include start/end println.
+// Build expansion tokens for RunRandomly / RunRandomlyQuiet.
+// If verbose is true, printing is guarded by runRandomlyShowStartEnd() and runRandomlyShowArgs() (see run_random_config.cj).
 func buildRunRandomlyExpansion(varNames: List<String>, generators: List<Expr>, funcRef: Expr, verbose: Bool): Tokens {
     var result = quote(ignoreOutput) + Token(TokenKind.LPAREN, "(") + quote({=>)
     if (verbose) {
         let funcRefStr = funcRef.toTokens().toString()
+        result += quote(if (runRandomlyShowStartEnd()) {)
         result += quote(print("starting: " + $(funcRefStr));)
         result += quote(print("(");)
+        result += quote(};)
     }
     for (i in 0..varNames.size) {
         let varToken = Token(TokenKind.IDENTIFIER, varNames[i])
@@ -95,6 +98,7 @@ func buildRunRandomlyExpansion(varNames: List<String>, generators: List<Expr>, f
         )
     }
     if (verbose) {
+        result += quote(if (runRandomlyShowArgs()) {)
         for (i in 0..varNames.size) {
             let varToken = Token(TokenKind.IDENTIFIER, varNames[i])
             let genStr = generators[i].toTokens().toString()
@@ -109,6 +113,10 @@ func buildRunRandomlyExpansion(varNames: List<String>, generators: List<Expr>, f
         }
         result += quote(print(")");)
         result += quote(println();)
+        result += quote(} else if (runRandomlyShowStartEnd()) {)
+        result += quote(print("...)");)
+        result += quote(println();)
+        result += quote(};)
     }
     var funcCallTokens = quote(let out = $(funcRef))
     if (varNames.size > 0) {
@@ -125,7 +133,9 @@ func buildRunRandomlyExpansion(varNames: List<String>, generators: List<Expr>, f
     result += funcCallTokens + quote(;)
     if (verbose) {
         let funcRefStr = funcRef.toTokens().toString()
+        result += quote(if (runRandomlyShowStartEnd()) {)
         result += quote(println("ending: " + $(funcRefStr));)
+        result += quote(};)
     }
     result += quote(return out)
     result += quote(}) + Token(TokenKind.RPAREN, ")")
